@@ -9,6 +9,16 @@ export const saveProfile = (profileData) => {
   localStorage.setItem('volunteerhub_profile', JSON.stringify(profileData))
 }
 
+export const updateProfile = (updates) => {
+  const currentProfile = getProfile()
+  if (currentProfile) {
+    const updatedProfile = { ...currentProfile, ...updates }
+    saveProfile(updatedProfile)
+    return updatedProfile
+  }
+  return null
+}
+
 export const hasProfile = () => {
   return localStorage.getItem('volunteerhub_profile') !== null
 }

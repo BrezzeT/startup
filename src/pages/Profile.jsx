@@ -1,12 +1,20 @@
 import { useState, useEffect } from 'react'
-import { User, Mail, Phone, MapPin, Calendar, Award, Heart, Settings } from 'lucide-react'
+import { User, Mail, Phone, MapPin, Calendar, Award, Heart, Settings, X, LogOut, Save } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { getProfile, hasProfile } from '../utils/profile'
+import { getProfile, hasProfile, updateProfile, clearProfile } from '../utils/profile'
 
 function Profile() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('overview')
   const [user, setUser] = useState(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    location: '',
+    description: '',
+  })
 
   useEffect(() => {
     if (!hasProfile()) {
@@ -15,9 +23,13 @@ function Profile() {
       return
     }
     
+    loadProfile()
+  }, [navigate])
+
+  const loadProfile = () => {
     const profileData = getProfile()
     if (profileData) {
-      setUser({
+      const userData = {
         name: profileData.name || 'Користувач',
         email: profileData.email || '',
         phone: profileData.phone || '',
@@ -29,9 +41,38 @@ function Profile() {
         badges: profileData.badges || [],
         description: profileData.description || '',
         type: profileData.type || 'volunteer',
+      }
+      setUser(userData)
+      setEditForm({
+        name: userData.name,
+        email: userData.email,
+        phone: userData.phone,
+        location: userData.location,
+        description: userData.description,
       })
     }
-  }, [navigate])
+  }
+
+  const handleEditClick = () => {
+    setShowEditModal(true)
+  }
+
+  const handleSaveEdit = () => {
+    const updated = updateProfile(editForm)
+    if (updated) {
+      loadProfile()
+      setShowEditModal(false)
+      window.dispatchEvent(new Event('profileUpdated'))
+    }
+  }
+
+  const handleLogout = () => {
+    if (window.confirm('Ви впевнені, що хочете вийти з профілю?')) {
+      clearProfile()
+      window.dispatchEvent(new Event('profileUpdated'))
+      navigate('/')
+    }
+  }
 
   const activities = [
     { id: 1, title: 'Допомога ВПО з продуктами', date: '2025-11-20', status: 'completed' },
@@ -75,10 +116,22 @@ function Profile() {
                 </div>
               </div>
             </div>
-            <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-              <Settings className="w-4 h-4" />
-              <span>Налаштування</span>
-            </button>
+            <div className="flex space-x-2">
+              <button 
+                onClick={handleEditClick}
+                className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Налаштування</span>
+              </button>
+              <button 
+                onClick={handleLogout}
+                className="flex items-center space-x-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Вийти</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -228,6 +281,101 @@ function Profile() {
           </div>
         </div>
       </div>
+
+      {/* Модальне вікно редагування профілю */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold">Редагувати профіль</h3>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ім'я
+                </label>
+                <input
+                  type="text"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Телефон
+                </label>
+                <input
+                  type="tel"
+                  value={editForm.phone}
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Локація
+                </label>
+                <input
+                  type="text"
+                  value={editForm.location}
+                  onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Про себе
+                </label>
+                <textarea
+                  value={editForm.description}
+                  onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                  rows={4}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="flex space-x-4 mt-6">
+              <button
+                onClick={handleSaveEdit}
+                className="flex-1 flex items-center justify-center space-x-2 bg-red-600 text-white py-3 rounded-lg font-semibold hover:bg-red-700 transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                <span>Зберегти</span>
+              </button>
+              <button
+                onClick={() => setShowEditModal(false)}
+                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Скасувати
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
